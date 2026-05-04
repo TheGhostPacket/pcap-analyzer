@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PCAP Analyzer | TheGhostPacket</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+<nav>
+    <div class="nav-inner">
+        <a href="https://theghostpacket.com" class="logo">
+            <div class="logo-mark"><i class="fas fa-shield-halved"></i></div>
+            TheGhostPacket
+        </a>
+        <span class="nav-tool-label">PCAP Network Analyzer</span>
+    </div>
+</nav>
+
+<main>
+    <!-- Upload Section -->
+    <section class="hero-section">
+        <div class="wrap">
+            <div class="hero-eyebrow">
+                <i class="fas fa-magnifying-glass"></i>
+                Network Traffic Analysis
+            </div>
+            <h1 class="hero-title">PCAP <em>Threat</em> Analyzer</h1>
+            <p class="hero-desc">Upload a packet capture file to detect port scans, ARP spoofing, DNS tunneling, brute force attempts, and suspicious traffic patterns.</p>
+
+            <div class="upload-zone" id="uploadZone">
+                <div class="upload-icon"><i class="fas fa-file-waveform"></i></div>
+                <div class="upload-text">Drop your PCAP file here</div>
+                <div class="upload-sub">or click to browse · Supports .pcap, .pcapng, .cap · Max 50MB</div>
+                <input type="file" id="fileInput" accept=".pcap,.pcapng,.cap" hidden>
+                <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                    <i class="fas fa-upload"></i> Choose File
+                </button>
+            </div>
+
+            <div class="selected-file" id="selectedFile" style="display:none;">
+                <i class="fas fa-file-code"></i>
+                <span id="selectedFileName"></span>
+                <button class="analyze-btn" id="analyzeBtn" onclick="startAnalysis()">
+                    <i class="fas fa-play"></i> Analyze
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Loading State -->
+    <section class="loading-section" id="loadingSection" style="display:none;">
+        <div class="wrap">
+            <div class="loading-card">
+                <div class="spinner"></div>
+                <div class="loading-title">Analyzing packet capture...</div>
+                <div class="loading-steps" id="loadingSteps">
+                    <div class="step active" id="step1"><i class="fas fa-circle-check"></i> Loading packets</div>
+                    <div class="step" id="step2"><i class="fas fa-circle"></i> Computing statistics</div>
+                    <div class="step" id="step3"><i class="fas fa-circle"></i> Running threat detectors</div>
+                    <div class="step" id="step4"><i class="fas fa-circle"></i> Generating report</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Results Section -->
+    <section class="results-section" id="resultsSection" style="display:none;">
+        <div class="wrap">
+
+            <!-- Report Header -->
+            <div class="report-header">
+                <div>
+                    <div class="report-eyebrow">Analysis Complete</div>
+                    <h2 class="report-title" id="reportFilename"></h2>
+                </div>
+                <div class="report-actions">
+                    <button class="btn-outline" onclick="exportCSV()"><i class="fas fa-download"></i> Export CSV</button>
+                    <button class="btn-primary" onclick="resetAnalyzer()"><i class="fas fa-plus"></i> New Analysis</button>
+                </div>
+            </div>
+
+            <!-- Risk Banner -->
+            <div class="risk-banner" id="riskBanner">
+                <div class="risk-icon" id="riskIcon"></div>
+                <div>
+                    <div class="risk-label">Overall Risk Level</div>
+                    <div class="risk-value" id="riskValue"></div>
+                </div>
+            </div>
+
+            <!-- Summary Cards -->
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <div class="summary-num" id="sumPackets">—</div>
+                    <div class="summary-label">Total Packets</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-num" id="sumDuration">—</div>
+                    <div class="summary-label">Duration (seconds)</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-num" id="sumFindings">—</div>
+                    <div class="summary-label">Findings</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-num" id="sumHosts">—</div>
+                    <div class="summary-label">Unique Source IPs</div>
+                </div>
+            </div>
+
+            <!-- Severity Breakdown + Protocol Chart -->
+            <div class="charts-row">
+                <div class="chart-card">
+                    <div class="chart-title">Findings by Severity</div>
+                    <div class="severity-bars" id="severityBars"></div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-title">Protocol Distribution</div>
+                    <div class="protocol-bars" id="protocolBars"></div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-title">Top Talkers</div>
+                    <div class="talkers-list" id="talkersList"></div>
+                </div>
+            </div>
+
+            <!-- Findings Table -->
+            <div class="findings-section">
+                <div class="findings-header">
+                    <h3 class="findings-title">Detailed Findings</h3>
+                    <div class="findings-filter" id="findingsFilter">
+                        <button class="filter-btn active" data-sev="all">All</button>
+                        <button class="filter-btn" data-sev="CRITICAL">Critical</button>
+                        <button class="filter-btn" data-sev="HIGH">High</button>
+                        <button class="filter-btn" data-sev="MEDIUM">Medium</button>
+                        <button class="filter-btn" data-sev="LOW">Low</button>
+                    </div>
+                </div>
+
+                <div id="findingsList"></div>
+
+                <div class="no-findings" id="noFindings" style="display:none;">
+                    <i class="fas fa-circle-check" style="color:var(--success);font-size:2rem;margin-bottom:0.75rem;display:block;"></i>
+                    <strong>No threats detected</strong>
+                    <p>No suspicious patterns were identified in this capture.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Error Section -->
+    <div class="error-toast" id="errorToast" style="display:none;">
+        <i class="fas fa-triangle-exclamation"></i>
+        <span id="errorMessage"></span>
+        <button onclick="hideError()"><i class="fas fa-xmark"></i></button>
+    </div>
+</main>
+
+<footer>
+    <div class="wrap">
+        <div class="footer-inner">
+            <span>PCAP Analyzer · <a href="https://theghostpacket.com">TheGhostPacket</a></span>
+            <span>Powered by Scapy · Python Flask</span>
+        </div>
+    </div>
+</footer>
+
+<script src="/static/js/app.js"></script>
+</body>
+</html>
