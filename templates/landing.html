@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PCAP Threat Analyzer | TheGhostPacket</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg:       #F7F6F2;
+            --bg-card:  #FFFFFF;
+            --bg-subtle:#F0EEE9;
+            --navy:     #0D1B2A;
+            --navy-mid: #1E3A5F;
+            --blue:     #0052CC;
+            --blue-lt:  #E8F0FE;
+            --muted:    #6B7280;
+            --border:   #E2DED6;
+            --border-dk:#C8C3B8;
+            --success:  #057A55;
+            --success-bg:#ECFDF5;
+            --danger:   #991B1B;
+            --danger-bg:#FEF2F2;
+            --high:     #C2410C;
+            --high-bg:  #FFF7ED;
+            --medium:   #B45309;
+            --font-head:'Syne', sans-serif;
+            --font-body:'DM Sans', sans-serif;
+            --radius:   10px;
+            --radius-lg:16px;
+            --shadow:   0 1px 3px rgba(0,0,0,0.07), 0 4px 16px rgba(0,0,0,0.05);
+            --shadow-lg:0 4px 6px rgba(0,0,0,0.05), 0 16px 40px rgba(0,0,0,0.08);
+        }
+
+        *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: var(--font-body);
+            background: var(--bg);
+            color: var(--navy);
+            line-height: 1.6;
+        }
+
+        h1,h2,h3 { font-family: var(--font-head); }
+
+        /* NAV */
+        nav {
+            position: fixed; top:0; width:100%; z-index:100;
+            background: rgba(247,246,242,0.94);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+        }
+        .nav-inner {
+            max-width: 1200px; margin:0 auto; padding:0 2rem;
+            height: 60px; display:flex; align-items:center; justify-content:space-between;
+        }
+        .logo {
+            display:flex; align-items:center; gap:0.6rem;
+            text-decoration:none; font-family:var(--font-head);
+            font-weight:800; font-size:0.95rem; color:var(--navy);
+        }
+        .logo-mark {
+            width:28px; height:28px; background:var(--navy); border-radius:6px;
+            display:flex; align-items:center; justify-content:center;
+            color:#fff; font-size:0.75rem;
+        }
+        .nav-right { display:flex; align-items:center; gap:1rem; }
+        .nav-link { font-size:0.85rem; font-weight:500; color:var(--muted); text-decoration:none; transition:color 0.2s; }
+        .nav-link:hover { color:var(--navy); }
+        .nav-cta {
+            background:var(--blue); color:#fff;
+            padding:0.5rem 1.1rem; border-radius:var(--radius);
+            font-weight:600; font-size:0.85rem; text-decoration:none;
+            transition:background 0.2s;
+        }
+        .nav-cta:hover { background:#003DA6; color:#fff; }
+
+        /* HERO */
+        .hero {
+            padding: 9rem 2rem 5rem;
+            max-width: 1200px; margin:0 auto;
+            display:grid; grid-template-columns:1fr 1fr;
+            gap:5rem; align-items:center;
+        }
+
+        .hero-eyebrow {
+            display:inline-flex; align-items:center; gap:0.5rem;
+            background:var(--blue-lt); color:var(--blue);
+            font-size:0.75rem; font-weight:700; letter-spacing:0.08em;
+            text-transform:uppercase; padding:0.35rem 0.85rem;
+            border-radius:50px; border:1px solid rgba(0,82,204,0.2);
+            margin-bottom:1.5rem;
+        }
+
+        .hero-title {
+            font-size: clamp(2.2rem, 3.5vw, 3.2rem);
+            font-weight:800; color:var(--navy);
+            letter-spacing:-0.03em; line-height:1.1;
+            margin-bottom:1.25rem;
+        }
+        .hero-title em { font-style:normal; color:var(--blue); }
+
+        .hero-desc {
+            font-size:1rem; color:var(--muted);
+            line-height:1.75; margin-bottom:2rem; font-weight:300;
+        }
+
+        .hero-actions { display:flex; gap:0.75rem; flex-wrap:wrap; }
+
+        .btn-primary {
+            display:inline-flex; align-items:center; gap:0.5rem;
+            background:var(--navy); color:#fff;
+            padding:0.9rem 1.8rem; border-radius:var(--radius);
+            font-weight:600; font-size:0.9rem; text-decoration:none;
+            transition:background 0.2s, transform 0.2s; font-family:var(--font-body);
+        }
+        .btn-primary:hover { background:var(--navy-mid); transform:translateY(-2px); }
+
+        .btn-outline {
+            display:inline-flex; align-items:center; gap:0.5rem;
+            background:transparent; color:var(--navy);
+            padding:0.9rem 1.8rem; border-radius:var(--radius);
+            font-weight:600; font-size:0.9rem; text-decoration:none;
+            border:1.5px solid var(--border-dk);
+            transition:border-color 0.2s, transform 0.2s; font-family:var(--font-body);
+        }
+        .btn-outline:hover { border-color:var(--navy); transform:translateY(-2px); }
+
+        /* HERO VISUAL — mock threat card */
+        .hero-visual {
+            background:var(--bg-card);
+            border:1px solid var(--border);
+            border-radius:var(--radius-lg);
+            box-shadow:var(--shadow-lg);
+            overflow:hidden;
+        }
+        .visual-header {
+            background:var(--navy); padding:1rem 1.25rem;
+            display:flex; align-items:center; justify-content:space-between;
+        }
+        .visual-title {
+            font-family:var(--font-head); font-size:0.8rem; font-weight:700;
+            color:#fff; letter-spacing:0.05em; text-transform:uppercase;
+        }
+        .visual-risk {
+            background:#DC2626; color:#fff;
+            font-size:0.68rem; font-weight:700; letter-spacing:0.06em;
+            text-transform:uppercase; padding:0.25rem 0.65rem; border-radius:4px;
+        }
+        .visual-stats {
+            display:grid; grid-template-columns:repeat(3,1fr);
+            border-bottom:1px solid var(--border);
+        }
+        .visual-stat {
+            padding:1rem; text-align:center;
+            border-right:1px solid var(--border);
+        }
+        .visual-stat:last-child { border-right:none; }
+        .visual-stat-num {
+            font-family:var(--font-head); font-size:1.6rem;
+            font-weight:800; color:var(--navy); line-height:1;
+        }
+        .visual-stat-label { font-size:0.72rem; color:var(--muted); margin-top:0.2rem; }
+
+        .visual-findings { padding:0.75rem 0; }
+        .visual-finding {
+            display:grid; grid-template-columns:auto 1fr;
+            gap:0.75rem; padding:0.75rem 1.25rem;
+            border-bottom:1px solid var(--border); align-items:start;
+        }
+        .visual-finding:last-child { border-bottom:none; }
+        .sev-badge {
+            font-size:0.62rem; font-weight:700; letter-spacing:0.05em;
+            text-transform:uppercase; padding:0.2rem 0.55rem;
+            border-radius:4px; white-space:nowrap; margin-top:0.1rem;
+        }
+        .sev-badge.CRITICAL { background:var(--danger-bg); color:var(--danger); }
+        .sev-badge.HIGH     { background:var(--high-bg);   color:var(--high); }
+        .sev-badge.MEDIUM   { background:#FFFBEB;           color:var(--medium); }
+        .vf-title { font-family:var(--font-head); font-size:0.82rem; font-weight:700; color:var(--navy); }
+        .vf-desc  { font-size:0.75rem; color:var(--muted); font-weight:300; margin-top:0.15rem; }
+
+        /* WHAT IT DETECTS */
+        .detects-section {
+            background:var(--navy); padding:5rem 2rem;
+        }
+        .detects-inner { max-width:1200px; margin:0 auto; }
+        .detects-eyebrow {
+            font-size:0.72rem; font-weight:700; letter-spacing:0.14em;
+            text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:0.75rem;
+        }
+        .detects-title {
+            font-family:var(--font-head); font-size:clamp(1.6rem,2.5vw,2.2rem);
+            font-weight:800; color:#fff; letter-spacing:-0.02em; margin-bottom:3rem;
+        }
+        .detects-grid {
+            display:grid; grid-template-columns:repeat(3,1fr); gap:1rem;
+        }
+        .detect-card {
+            background:rgba(255,255,255,0.04);
+            border:1px solid rgba(255,255,255,0.08);
+            border-radius:var(--radius-lg); padding:1.5rem;
+            transition:background 0.2s;
+        }
+        .detect-card:hover { background:rgba(255,255,255,0.07); }
+        .detect-icon {
+            width:36px; height:36px; border-radius:8px;
+            display:flex; align-items:center; justify-content:center;
+            font-size:0.9rem; margin-bottom:1rem;
+        }
+        .detect-icon.red    { background:rgba(220,38,38,0.15); color:#F87171; }
+        .detect-icon.orange { background:rgba(234,88,12,0.15); color:#FB923C; }
+        .detect-icon.amber  { background:rgba(217,119,6,0.15); color:#FCD34D; }
+        .detect-icon.blue   { background:rgba(37,99,235,0.15); color:#60A5FA; }
+        .detect-icon.purple { background:rgba(124,58,237,0.15); color:#A78BFA; }
+        .detect-icon.green  { background:rgba(5,122,85,0.15);  color:#34D399; }
+
+        .detect-title { font-family:var(--font-head); font-size:0.95rem; font-weight:700; color:#fff; margin-bottom:0.4rem; }
+        .detect-desc  { font-size:0.82rem; color:rgba(255,255,255,0.45); line-height:1.6; font-weight:300; }
+
+        /* HOW IT WORKS */
+        .how-section { padding:5rem 2rem; max-width:1200px; margin:0 auto; }
+        .sec-eyebrow { font-size:0.72rem; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:var(--blue); margin-bottom:0.75rem; }
+        .sec-title { font-family:var(--font-head); font-size:clamp(1.6rem,2.5vw,2.2rem); font-weight:800; letter-spacing:-0.02em; margin-bottom:3rem; }
+
+        .steps-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:2rem; }
+        .step-card { text-align:center; }
+        .step-num {
+            width:48px; height:48px; border-radius:50%;
+            background:var(--blue-lt); color:var(--blue);
+            font-family:var(--font-head); font-weight:800; font-size:1.1rem;
+            display:flex; align-items:center; justify-content:center;
+            margin:0 auto 1rem;
+        }
+        .step-title { font-family:var(--font-head); font-size:1rem; font-weight:700; margin-bottom:0.5rem; }
+        .step-desc  { font-size:0.875rem; color:var(--muted); font-weight:300; line-height:1.65; }
+
+        /* CTA */
+        .cta-section {
+            background:var(--bg-card); border-top:1px solid var(--border);
+            border-bottom:1px solid var(--border); padding:4rem 2rem; text-align:center;
+        }
+        .cta-title { font-family:var(--font-head); font-size:clamp(1.6rem,2.5vw,2rem); font-weight:800; margin-bottom:0.75rem; }
+        .cta-desc  { font-size:0.95rem; color:var(--muted); margin-bottom:2rem; font-weight:300; }
+
+        /* FOOTER */
+        footer { background:var(--navy); padding:1.5rem 2rem; }
+        .footer-inner {
+            max-width:1200px; margin:0 auto;
+            display:flex; align-items:center; justify-content:space-between;
+            font-size:0.8rem; color:rgba(255,255,255,0.3);
+        }
+        .footer-inner a { color:rgba(255,255,255,0.5); text-decoration:none; }
+        .footer-inner a:hover { color:#fff; }
+
+        @media (max-width:900px) {
+            .hero { grid-template-columns:1fr; gap:3rem; padding-top:7rem; }
+            .detects-grid { grid-template-columns:repeat(2,1fr); }
+            .steps-grid { grid-template-columns:1fr; gap:1.5rem; }
+        }
+        @media (max-width:600px) {
+            .detects-grid { grid-template-columns:1fr; }
+            .footer-inner { flex-direction:column; gap:0.75rem; text-align:center; }
+        }
+    </style>
+</head>
+<body>
+
+<nav>
+    <div class="nav-inner">
+        <a href="https://theghostpacket.com" class="logo">
+            <div class="logo-mark"><i class="fas fa-shield-halved"></i></div>
+            TheGhostPacket
+        </a>
+        <div class="nav-right">
+            <a href="https://github.com/TheGhostPacket/pcap-analyzer" target="_blank" class="nav-link"><i class="fab fa-github"></i> GitHub</a>
+            <a href="/tool" class="nav-cta"><i class="fas fa-play"></i> Launch Tool</a>
+        </div>
+    </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+    <div>
+        <div class="hero-eyebrow"><i class="fas fa-magnifying-glass"></i> Network Forensics Tool</div>
+        <h1 class="hero-title">Analyze packet captures for <em>real threats</em> — in seconds.</h1>
+        <p class="hero-desc">Upload a <code>.pcap</code> file and get an instant threat report. Detects port scans, ARP spoofing, DNS tunneling, brute force attacks, and more. Powered by Scapy — no simulated data.</p>
+        <div class="hero-actions">
+            <a href="/tool" class="btn-primary"><i class="fas fa-play"></i> Launch Analyzer</a>
+            <a href="https://github.com/TheGhostPacket/pcap-analyzer" target="_blank" class="btn-outline"><i class="fab fa-github"></i> View Source</a>
+        </div>
+    </div>
+
+    <!-- Mock threat report visual -->
+    <div class="hero-visual">
+        <div class="visual-header">
+            <span class="visual-title">Threat Report</span>
+            <span class="visual-risk">HIGH RISK</span>
+        </div>
+        <div class="visual-stats">
+            <div class="visual-stat">
+                <div class="visual-stat-num">4,821</div>
+                <div class="visual-stat-label">Packets</div>
+            </div>
+            <div class="visual-stat">
+                <div class="visual-stat-num">7</div>
+                <div class="visual-stat-label">Findings</div>
+            </div>
+            <div class="visual-stat">
+                <div class="visual-stat-num">12</div>
+                <div class="visual-stat-label">Source IPs</div>
+            </div>
+        </div>
+        <div class="visual-findings">
+            <div class="visual-finding">
+                <span class="sev-badge CRITICAL">Critical</span>
+                <div>
+                    <div class="vf-title">ARP Spoofing Detected</div>
+                    <div class="vf-desc">IP 192.168.1.1 claimed by 3 MACs — MITM attack indicator</div>
+                </div>
+            </div>
+            <div class="visual-finding">
+                <span class="sev-badge HIGH">High</span>
+                <div>
+                    <div class="vf-title">Vertical Port Scan</div>
+                    <div class="vf-desc">10.0.0.5 scanned 847 ports on 10.0.0.1</div>
+                </div>
+            </div>
+            <div class="visual-finding">
+                <span class="sev-badge HIGH">High</span>
+                <div>
+                    <div class="vf-title">DNS Tunneling (High Entropy)</div>
+                    <div class="vf-desc">Encoded data detected in DNS subdomains — entropy 4.2</div>
+                </div>
+            </div>
+            <div class="visual-finding">
+                <span class="sev-badge MEDIUM">Medium</span>
+                <div>
+                    <div class="vf-title">ICMP Flood</div>
+                    <div class="vf-desc">192.168.1.50 sent 312 echo requests to 10.0.0.1</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- WHAT IT DETECTS -->
+<section class="detects-section">
+    <div class="detects-inner">
+        <div class="detects-eyebrow">Detection Capabilities</div>
+        <h2 class="detects-title">What it finds in your captures</h2>
+        <div class="detects-grid">
+            <div class="detect-card">
+                <div class="detect-icon red"><i class="fas fa-network-wired"></i></div>
+                <div class="detect-title">Port Scanning</div>
+                <div class="detect-desc">Detects both vertical scans (many ports, one host) and horizontal scans (one port, many hosts) via SYN packet analysis.</div>
+            </div>
+            <div class="detect-card">
+                <div class="detect-icon orange"><i class="fas fa-shuffle"></i></div>
+                <div class="detect-title">ARP Spoofing</div>
+                <div class="detect-desc">Identifies conflicting IP-to-MAC mappings in ARP replies — the primary indicator of Man-in-the-Middle attacks.</div>
+            </div>
+            <div class="detect-card">
+                <div class="detect-icon amber"><i class="fas fa-globe"></i></div>
+                <div class="detect-title">DNS Tunneling</div>
+                <div class="detect-desc">Flags long subdomains, high Shannon entropy queries, and excessive unique DNS lookups — common data exfiltration techniques.</div>
+            </div>
+            <div class="detect-card">
+                <div class="detect-icon blue"><i class="fas fa-key"></i></div>
+                <div class="detect-title">Brute Force Attacks</div>
+                <div class="detect-desc">Detects credential stuffing and brute force patterns against SSH (22), FTP (21), and HTTP/HTTPS services.</div>
+            </div>
+            <div class="detect-card">
+                <div class="detect-icon purple"><i class="fas fa-skull"></i></div>
+                <div class="detect-title">Suspicious Ports</div>
+                <div class="detect-desc">Flags traffic on known malicious ports — Metasploit (4444), Tor (9001/9050), IRC botnet C2 (6666/6667), and others.</div>
+            </div>
+            <div class="detect-card">
+                <div class="detect-icon green"><i class="fas fa-chart-line"></i></div>
+                <div class="detect-title">ICMP Floods &amp; Anomalies</div>
+                <div class="detect-desc">Detects high-volume ICMP echo requests indicative of ping flood DoS attacks, plus large data transfer anomalies.</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how-section">
+    <div class="sec-eyebrow">How It Works</div>
+    <h2 class="sec-title">Three steps to a threat report</h2>
+    <div class="steps-grid">
+        <div class="step-card">
+            <div class="step-num">1</div>
+            <div class="step-title">Upload your PCAP</div>
+            <div class="step-desc">Drag and drop or browse for a <code>.pcap</code>, <code>.pcapng</code>, or <code>.cap</code> file. Captured with Wireshark, tcpdump, or any standard tool. Max 50MB.</div>
+        </div>
+        <div class="step-card">
+            <div class="step-num">2</div>
+            <div class="step-title">Scapy parses every packet</div>
+            <div class="step-desc">Seven independent detection modules run against your capture — each using real protocol-level heuristics, not pattern matching against known signatures.</div>
+        </div>
+        <div class="step-card">
+            <div class="step-num">3</div>
+            <div class="step-title">Get a prioritised report</div>
+            <div class="step-desc">Findings are ranked Critical → Low with full descriptions, affected IPs, and packet counts. Export the full report as CSV for documentation.</div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+    <h2 class="cta-title">Ready to analyze a capture?</h2>
+    <p class="cta-desc">No account required. Files are deleted immediately after analysis.</p>
+    <a href="/tool" class="btn-primary" style="display:inline-flex;"><i class="fas fa-play"></i> Launch the Analyzer</a>
+</section>
+
+<footer>
+    <div class="footer-inner">
+        <span>Built by <a href="https://theghostpacket.com">TheGhostPacket</a> · Powered by Python &amp; Scapy</span>
+        <span><a href="https://github.com/TheGhostPacket/pcap-analyzer" target="_blank"><i class="fab fa-github"></i> View on GitHub</a></span>
+    </div>
+</footer>
+
+</body>
+</html>

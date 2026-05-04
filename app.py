@@ -1,6 +1,5 @@
 from flask import Flask, render_template, request, jsonify, send_file
 import os
-import json
 import csv
 import io
 from datetime import datetime
@@ -8,17 +7,34 @@ from werkzeug.utils import secure_filename
 from analyzer import PCAPAnalyzer
 
 app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = 'uploads'
-app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB max
+
+UPLOAD_FOLDER = '/tmp/pcap_uploads'
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
 app.config['ALLOWED_EXTENSIONS'] = {'pcap', 'pcapng', 'cap'}
 app.secret_key = os.urandom(24)
+
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
+
+@app.errorhandler(413)
+def too_large(e):
+    return jsonify({'error': 'File too large. Maximum size is 50MB.'}), 413
+
+
 @app.route('/')
-def index():
+def landing():
+    return render_template('landing.html')
+
+
+@app.route('/tool')
+def tool():
     return render_template('index.html')
+
 
 @app.route('/analyze', methods=['POST'])
 def analyze():
@@ -34,18 +50,18 @@ def analyze():
 
     filename = secure_filename(file.filename)
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    file.save(filepath)
 
     try:
+        file.save(filepath)
         analyzer = PCAPAnalyzer(filepath)
         results = analyzer.run()
-        # Clean up uploaded file
-        os.remove(filepath)
         return jsonify(results)
     except Exception as e:
+        return jsonify({'error': f'Analysis failed: {str(e)}'}), 500
+    finally:
         if os.path.exists(filepath):
             os.remove(filepath)
-        return jsonify({'error': f'Analysis failed: {str(e)}'}), 500
+
 
 @app.route('/export', methods=['POST'])
 def export():
@@ -75,7 +91,7 @@ def export():
         download_name=f'pcap_analysis_{timestamp}.csv'
     )
 
+
 if __name__ == '__main__':
-    os.makedirs('uploads', exist_ok=True)
     port = int(os.environ.get('PORT', 5000))
     app.run(debug=False, host='0.0.0.0', port=port)
