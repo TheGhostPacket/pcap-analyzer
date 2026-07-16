@@ -68,4 +68,4 @@ pcap-analyzer/
 
 ## Author
 
-[TheGhostPacket](https://theghostpacket.com) — Nhyira Yanney
+[TheGhostPacket](https://theghostpacket.com)
